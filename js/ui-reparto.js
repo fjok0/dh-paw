@@ -1,27 +1,8 @@
 import { getReparto } from "./db.js";
 import { fmtNum, initials } from "./ui-comunes.js";
-import { resolveLogoUrl } from "./logos.js";
+import { applyLogo } from "./logos.js";
 
-const BAR_COLORS = [
-  "#6366f1","#8b5cf6","#ec4899","#f59e0b",
-  "#10b981","#3b82f6","#ef4444","#14b8a6",
-];
-
-function makeLogoEl(url, ticker, className = "alloc-logo") {
-  const wrap = document.createElement("div");
-  wrap.className = className;
-  if (url) {
-    const img = document.createElement("img");
-    img.src = url;
-    img.alt = ticker;
-    img.onerror = () => { wrap.classList.add("initials"); wrap.innerHTML = ""; wrap.textContent = initials(ticker); };
-    wrap.appendChild(img);
-  } else {
-    wrap.classList.add("initials");
-    wrap.textContent = initials(ticker);
-  }
-  return wrap;
-}
+const BAR_COLORS = ["#6366f1","#8b5cf6","#ec4899","#f59e0b","#10b981","#3b82f6","#ef4444","#14b8a6"];
 
 export async function renderReparto() {
   const container = document.getElementById("view-reparto");
@@ -39,9 +20,6 @@ export async function renderReparto() {
   items.sort((a, b) => b.pct - a.pct);
   const maxPct = items[0]?.pct ?? 1;
 
-  // Resolve logos in parallel
-  const urls = await Promise.all(items.map(item => resolveLogoUrl(item.symbol)));
-
   const title = document.createElement("div");
   title.className = "section-title";
   title.textContent = "Distribución de la cartera";
@@ -49,19 +27,23 @@ export async function renderReparto() {
 
   const grid = document.createElement("div");
   grid.className = "alloc-grid";
-  items.forEach((item, i) => {
+  container.appendChild(grid);
+
+  items.forEach((item) => {
     const isLiq  = item.symbol === "_LIQUIDITY";
     const ticker = isLiq ? "€" : item.symbol.split(".")[0];
     const card   = document.createElement("div");
     card.className = "alloc-card";
 
-    let logoWrap;
+    const logoWrap = document.createElement("div");
     if (isLiq) {
-      logoWrap = document.createElement("div");
       logoWrap.className = "alloc-logo liquidity";
       logoWrap.textContent = "€";
     } else {
-      logoWrap = makeLogoEl(urls[i], ticker);
+      logoWrap.className = "alloc-logo";
+      const img = document.createElement("img");
+      logoWrap.appendChild(img);
+      applyLogo(img, logoWrap, item.symbol, initials(ticker));
     }
 
     const tickerEl = document.createElement("div");
@@ -75,7 +57,6 @@ export async function renderReparto() {
     card.append(logoWrap, tickerEl, pctEl);
     grid.appendChild(card);
   });
-  container.appendChild(grid);
 
   const chartTitle = document.createElement("div");
   chartTitle.className = "section-title";
@@ -85,6 +66,8 @@ export async function renderReparto() {
 
   const chart = document.createElement("div");
   chart.className = "bar-chart";
+  container.appendChild(chart);
+
   items.forEach((item, i) => {
     const isLiq = item.symbol === "_LIQUIDITY";
     const label = isLiq ? "Liq." : item.symbol.split(".")[0];
@@ -95,9 +78,7 @@ export async function renderReparto() {
     row.innerHTML = `
       <div class="bar-label" title="${item.name ?? label}">${label}</div>
       <div class="bar-track"><div class="bar-fill" style="width:${w.toFixed(1)}%;background:${color}"></div></div>
-      <div class="bar-val">${fmtNum(item.pct, 1)}%</div>
-    `;
+      <div class="bar-val">${fmtNum(item.pct, 1)}%</div>`;
     chart.appendChild(row);
   });
-  container.appendChild(chart);
 }

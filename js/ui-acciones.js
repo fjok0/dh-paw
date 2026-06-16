@@ -1,6 +1,6 @@
 import { getAcciones } from "./db.js";
 import { fmtEur, fmtPct, fmtNum, toneClass, initials } from "./ui-comunes.js";
-import { resolveLogoUrl } from "./logos.js";
+import { applyLogo } from "./logos.js";
 
 export async function renderAcciones() {
   const container = document.getElementById("view-acciones");
@@ -40,34 +40,28 @@ export async function renderAcciones() {
 
   const tbody = table.querySelector("tbody");
 
-  // Resolve logos (failures silently return null)
-  let urls = new Array(items.length).fill(null);
-  try { urls = await Promise.all(items.map(p => resolveLogoUrl(p.symbol))); }
-  catch { /* si falla, seguimos sin logos */ }
-
-  items.forEach((p, i) => {
+  items.forEach((p) => {
     const ticker = p.symbol.split(".")[0];
     const tone   = toneClass(p.unrealizedEur);
-    const url    = urls[i];
     const tr     = document.createElement("tr");
 
-    // Empresa
+    // Empresa con logo
     const tdName = document.createElement("td");
-    const logoSpan = document.createElement("span");
-    logoSpan.className = "logo-cell";
-    if (url) {
-      const img = document.createElement("img");
-      img.src = url; img.alt = ticker;
-      img.onerror = () => { logoSpan.classList.add("initials"); logoSpan.innerHTML = ""; logoSpan.textContent = initials(ticker); };
-      logoSpan.appendChild(img);
-    } else {
-      logoSpan.classList.add("initials");
-      logoSpan.textContent = initials(ticker);
-    }
-    tdName.appendChild(logoSpan);
+    const logoWrap = document.createElement("span");
+    logoWrap.className = "logo-cell";
+    const img = document.createElement("img");
+    logoWrap.appendChild(img);
+    applyLogo(img, logoWrap, p.symbol, initials(ticker));
+    tdName.appendChild(logoWrap);
     tdName.appendChild(document.createTextNode(" " + ticker));
 
-    const c = (txt, cls) => { const t = document.createElement("td"); t.className = cls || ""; t.textContent = txt; return t; };
+    const c = (txt, cls) => {
+      const t = document.createElement("td");
+      if (cls) t.className = cls;
+      t.textContent = txt;
+      return t;
+    };
+
     tr.append(
       tdName,
       c(fmtNum(p.openQty, 0), "num"),
@@ -85,7 +79,8 @@ export async function renderAcciones() {
   const totalCost = items.reduce((s, p) => s + (p.costBasisEur ?? 0), 0);
   const totalUn   = items.reduce((s, p) => s + (p.unrealizedEur ?? 0), 0);
   const totalPct  = totalCost > 0 ? (totalUn / totalCost) * 100 : 0;
-  const tone = toneClass(totalUn);
+  const tone      = toneClass(totalUn);
+
   table.querySelector("tfoot").innerHTML = `
     <tr style="border-top:1px solid var(--border)">
       <td colspan="3" style="color:var(--muted);font-size:0.65rem">TOTAL</td>
