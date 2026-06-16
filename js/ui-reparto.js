@@ -2,7 +2,8 @@
 // ui-reparto.js — vista Reparto
 // ============================================================
 import { getReparto } from "./db.js";
-import { fmtEur, fmtNum, toneClass, showToast, initials } from "./ui-comunes.js";
+import { fmtNum, initials } from "./ui-comunes.js";
+import { logoUrl } from "./logos.js";
 
 const BAR_COLORS = [
   "#6366f1","#8b5cf6","#ec4899","#f59e0b",
@@ -10,22 +11,21 @@ const BAR_COLORS = [
 ];
 
 function allocCard(item, rank) {
-  const isTicker = item.symbol !== "_LIQUIDITY";
-  const isLiq    = item.symbol === "_LIQUIDITY";
-  const ticker   = isTicker ? item.symbol.split(".")[0] : "€";
+  const isLiq  = item.symbol === "_LIQUIDITY";
+  const ticker = isLiq ? "€" : item.symbol.split(".")[0];
+  const url    = logoUrl(item.symbol);
 
   const card = document.createElement("div");
   card.className = "alloc-card";
 
-  // Logo
   const logoWrap = document.createElement("div");
   if (isLiq) {
     logoWrap.className = "alloc-logo liquidity";
     logoWrap.textContent = "€";
-  } else if (item.logoBase64) {
+  } else if (url) {
     logoWrap.className = "alloc-logo";
     const img = document.createElement("img");
-    img.src = item.logoBase64;
+    img.src = url;
     img.alt = ticker;
     img.onerror = () => {
       logoWrap.classList.add("initials");
@@ -51,14 +51,13 @@ function allocCard(item, rank) {
 }
 
 function barRow(item, rank, maxPct) {
-  const isTicker = item.symbol !== "_LIQUIDITY";
-  const label = isTicker ? item.symbol.split(".")[0] : "Liq.";
-  const color = item.symbol === "_LIQUIDITY" ? "#3b82f6" : BAR_COLORS[rank % BAR_COLORS.length];
+  const isLiq = item.symbol === "_LIQUIDITY";
+  const label = isLiq ? "Liq." : item.symbol.split(".")[0];
+  const color = isLiq ? "#3b82f6" : BAR_COLORS[rank % BAR_COLORS.length];
   const widthPct = maxPct > 0 ? (item.pct / maxPct) * 100 : 0;
 
   const row = document.createElement("div");
   row.className = "bar-row";
-
   row.innerHTML = `
     <div class="bar-label" title="${item.name ?? label}">${label}</div>
     <div class="bar-track"><div class="bar-fill" style="width:${widthPct.toFixed(1)}%;background:${color}"></div></div>
