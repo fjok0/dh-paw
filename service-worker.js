@@ -1,4 +1,4 @@
-const CACHE = "dh-v6";
+const CACHE = "dh-v7";
 const PRECACHE = [
   "./",
   "./index.html",
