@@ -1,8 +1,11 @@
-// ============================================================
-// ui-opciones.js — vista Opciones abiertas
-// ============================================================
 import { getOpciones } from "./db.js";
-import { fmtEur, fmtNum, toneClass, initials } from "./ui-comunes.js";
+import { fmtEur, fmtNum, toneClass } from "./ui-comunes.js";
+
+function fmtExpiry(iso) {
+  if (!iso) return "—";
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y.slice(2)}`;
+}
 
 export async function renderOpciones() {
   const container = document.getElementById("view-opciones");
@@ -21,7 +24,7 @@ export async function renderOpciones() {
     return;
   }
 
-  items.sort((a, b) => (b.costBasisEur ?? 0) - (a.costBasisEur ?? 0));
+  items.sort((a, b) => (a.expiry ?? "9999").localeCompare(b.expiry ?? "9999"));
 
   const title = document.createElement("div");
   title.className = "section-title";
@@ -37,7 +40,7 @@ export async function renderOpciones() {
     <thead>
       <tr>
         <th>Símbolo</th>
-        <th>Subyacente</th>
+        <th class="num">Vcto.</th>
         <th class="num">Qty</th>
         <th class="num">Coste €</th>
         <th class="num">Valor €</th>
@@ -55,7 +58,7 @@ export async function renderOpciones() {
     const tone = toneClass(p.unrealizedEur);
     tr.innerHTML = `
       <td style="font-size:0.65rem">${p.symbol}</td>
-      <td>${p.underlying ?? "—"}</td>
+      <td class="num" style="font-size:0.72rem">${fmtExpiry(p.expiry)}</td>
       <td class="num">${fmtNum(p.openQty, 0)}</td>
       <td class="num">${fmtEur(p.costBasisEur)}</td>
       <td class="num">${fmtEur(p.marketValueEur)}</td>
